@@ -46,7 +46,7 @@ class StepCounterApp():
         wasp.system.request_tick(1000)
 
     def tick(self, ticks):
-        self._count += 686;
+        self._count += 686
         self._update()
 
     def _draw(self):
