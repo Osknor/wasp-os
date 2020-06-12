@@ -27,8 +27,8 @@ class BMA421:
         # Init, reset, wait for reset, enable I2C watchdog
         dev.init()
         dev.set_command_register(0xb6)
-        time.sleep(0.20)
-        dev.set_reg(bma42x.NV_CONFIG_ADDR, 6)
+        time.sleep(0.05)
+        dev.set_reg(bma42x.NV_CONFIG_ADDR, 6);
 
         # Configure the sensor for basic step counting
         dev.write_config_file()
