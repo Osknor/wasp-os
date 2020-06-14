@@ -5,70 +5,43 @@ import random
 import micropython
 import array
 import random
-import fonts
 food1 = (
     b'\x02'
     b'\x05\x05'
     b'@lC\x03\x80\xbb\x83\x01\x8a\x01\x83\x01'
 )
 # 2-bit RLE, generated from /home/pi/Desktop/foood.png, 22 bytes
-food3 = (
+food2 = (
     b'\x02'
     b'\x07\x07'
     b'\x04@lB\x04B\x04\x807\x83\x03\x85\x02\x85\x02\x85'
     b'\x03\x83\x02'
 )
-food4 = (
-    b'\x02'
-    b'\n\n'
-    b'\x03@\xbbD\x05F\x03H\x01E\xc2I\xc1a\x01H'
-    b'\x03F\x02'
-)
-# 2-bit RLE, generated from /home/pi/Desktop/Snake.png, 58 bytes
-snake1 = (
-    b'\x02'
-    b'\n\n'
-    b'\x02@\xacF\x03A\x80l\x86A\x01A\x82D\x82B'
-    b'\x81B\x82B\x81B\x81A\x81B\x81A\x81B\x81A'
-    b'\x81B\x81A\x81B\x81B\x82B\x81B\x82D\x82A'
-    b'\x01A\x86A\x03F\x02'
-)
-# 2-bit RLE, generated from /home/pi/Desktop/food4.png, 26 bytes
-food2 = (
-    b'\x02'
-    b'\n\n'
-    b'\x05@lC\x06B\x07\x807\x84\x05\x86\x03\x88\x02\x88'
-    b'\x02\x88\x03\x86\x05\x84\r'
-)
-
-
-
-
 
 
 @micropython.viper
 def move_snake(snake, pos: int,newHead: int, length: int) -> int:
     b = ptr16(snake)
-    b[(pos)%60] = newHead
-    return int(b[(pos-length)%60])
+    b[(pos)%68] = newHead
+    return int(b[(pos-length)%68])
 
 @micropython.viper
 def get_head(snake,pos: int) ->int:
     b = ptr16(snake)
-    return int(b[pos%60])
+    return int(b[pos%68])
 @micropython.viper
 def check_hit(board,pos: int) -> bool:
     b = ptr32(board)
-    return bool(b[(pos%24)] & (1 << (pos // 24)))
+    return bool(b[(pos%34)] & (1 << (pos // 34)))
     return False
 @micropython.viper
 def update_board(board,pos:int ,last: int,ignore: bool):
     b = ptr32(board)
-    #print(pos,last,(pos//24),(pos % 24),1 << (pos % 24), b[(pos//24)])
-    b[(pos%24)] |= (1 << (pos // 24))
+    #print(pos,last,(pos//34),(pos % 34),1 << (pos % 34), b[(pos//34)])
+    b[(pos%34)] |= (1 << (pos // 34))
     if not ignore:
         c = ptr32(board)
-        c[(last%24)] ^= (1 << (last // 24))
+        c[(last%34)] ^= (1 << (last // 34))
 
 
 class SnakeApp():
@@ -78,9 +51,9 @@ class SnakeApp():
     NAME = 'Snake'
 
     def __init__(self):
-        self.board = array.array('I', [0] * 24 )
-        self.snake = bytearray(120)
-        self._size = 8
+        self.board = array.array('I', [0] * 34 )
+        self.snake = bytearray(136)
+        self._size = 7
         self._restarted = True
         self._gameOver = False
         self._moving = False
@@ -117,9 +90,9 @@ class SnakeApp():
             self._draw()
     def _draw(self):
         draw = wasp.watch.drawable
-        draw.fill()
-        draw.fill(0x02e2,0,0,240,20) 
-        #draw.fill(0xffff,0,20+10*10,10*4,10)
+        draw.fill(0xffff,0,0,240,240) 
+        draw.fill(0x0000,1,22,238,217)
+        draw.fill(0xffff,1,22+7*15,7*4,7)
         self._dir = [1,0]
         self._rl = True
         self._restarted = False
@@ -127,18 +100,13 @@ class SnakeApp():
         self._gameOver = False
         self.length = 4
         self.pos = 3
-        self.score = 0
-        draw.set_font(fonts.fixel20)
-        draw.set_color(0xffff,0x02E2)
-        draw.string("Score: "+ str(self.score), 10, 0)
         for i in range(len(self.board)):
             self.board[i] = 0
         for i in range(4):
-            move_snake(self.snake, i,10*24+i, 4)
-            update_board(self.board,10*24+i,0,True)
-            draw.blit(snake1, 10*i, 20+10*10)
+            move_snake(self.snake, i,15*34+i, 4)
+            update_board(self.board,15*34+i,0,True)
         self._spawnFood()
-        draw.blit(food2, 10*(((self.food % 24) ) % 24) , 20+10*(((self.food//24)) % 22))
+        draw.blit(food2,1+7*(((self.food % 34) ) % 34) , 22+7*(((self.food//34)) % 31))
     def update(self):
         draw = wasp.watch.drawable
         if self._restarted:
@@ -146,45 +114,34 @@ class SnakeApp():
         if self._moving:
             head = get_head(self.snake,self.pos)
             self.pos += 1 
-            newHead = (((head % 24) + self._dir[0]) % 24) +  24* (((head//24)+ self._dir[1]) % 22)
-            #draw.fill(0xffff, 10*(((head % 24) + self._dir[0]) % 24),20+10*(((head//24)+ self._dir[1]) % 22),10,10)
-            draw.blit(snake1, 10*(((head % 24) + self._dir[0]) % 24) , 20+10*(((head//24)+ self._dir[1]) % 22))
+            newHead = (((head % 34) + self._dir[0]) % 34) +  34* (((head//34)+ self._dir[1]) % 31)
+            draw.fill(0xffff,1+7*(((head % 34) + self._dir[0]) % 34),22+7*(((head//34)+ self._dir[1]) % 31),7,7)
             if check_hit(self.board,newHead):
                 self._gameOver = True
-                draw.set_font(fonts.sans28)
-                draw.set_color(0xffff,0x0000)
                 draw.string("Game Over",30,110)
             else:
                 last = move_snake(self.snake,self.pos, newHead, self.length)
                 #print(get_head(self.snake,self.pos))
                 if self.food == newHead:
-                    if self.length >= 59:
+                    if self.length >= 67:
                         self._gameOver = True
-                        draw.set_color(0xffff,0x0000)
-                        draw.set_font(fonts.sans36)
                         draw.string("You Won! :)",30,110)
                     else:
                         update_board(self.board,newHead,last,True)
                         self._spawnFood()
-                        draw.blit(food2, 10*(((self.food % 24)) % 24) , 20+10*(((self.food//24)) % 22))
+                        draw.blit(food2,1+7*(((self.food % 34)) % 34) , 22+7*(((self.food//34)) % 31))
                         self.length += 1
                 else:
                     update_board(self.board,newHead,last,False)
-                    draw.fill(0x0000, 10*((last % 24)  % 24),20+10*((last//24) % 22),10,10)
-            if (self.length -4)*10 != self.score:
-                self.score = 10*(self.length - 4)
-                draw.set_color(0xffff,0x02E2)
-                draw.set_font(fonts.fixel20)
-                draw.string("Score: "+ str(self.score), 10, 0)
+                    draw.fill(0x0000,1+7*((last % 34)  % 34),22+7*((last//34) % 31),7,7)
 
 
     def _spawnFood(self):
-        trial = random.randrange((22*24)-1)
+        trial = random.randrange(32*34)
         localCounter = 0
         while (True or localCounter < 100):
             if check_hit(self.board,trial):
-                print('bing!')
-                trial = (((trial % 24) + 2) % 24) +  24* (((trial//24)+ 10) % 22)
+                trial = (((trial % 34) + 2) % 34) +  34* (((trial//34)+ 7) % 31)
             else:
                 break
         self.food = trial
