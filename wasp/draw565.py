@@ -74,10 +74,9 @@ def _bounding_box(s, font):
 @micropython.native
 def _draw_glyph(display, glyph, x, y, bgfg):
     (px, h, w) = glyph
-
     buf = memoryview(display.linebuffer)[0:2*(w+1)]
-    buf[2*w] = 0
-    buf[2*w + 1] = 0
+    buf[2*w] = (bgfg >> 24)
+    buf[2*w + 1] = ((bgfg >>16) & 0xff)
     bytes_per_row = (w + 7) // 8
 
     display.set_window(x, y, w+1, h)
@@ -268,12 +267,13 @@ class Draw565(object):
         display = self._display
         bgfg = self._bgfg
         font = self._font
+        bg = (bgfg >> 16)
 
         if width:
             (w, h) = _bounding_box(s, font)
             leftpad = (width - w) // 2
             rightpad = width - w - leftpad
-            display.fill(0, x, y, leftpad, h)
+            display.fill(bg, x, y, leftpad, h)
             x += leftpad
 
         for ch in s:
@@ -282,7 +282,7 @@ class Draw565(object):
             x += glyph[2] + 1
 
         if width:
-            display.fill(0, x, y, rightpad, h)
+            display.fill(bg, x, y, rightpad, h)
 
     def wrap(self, s, width):
         """Chunk a string so it can rendered within a specified width.

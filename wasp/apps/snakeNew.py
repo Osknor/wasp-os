@@ -6,24 +6,9 @@ import micropython
 import array
 import random
 import fonts
-food1 = (
-    b'\x02'
-    b'\x05\x05'
-    b'@lC\x03\x80\xbb\x83\x01\x8a\x01\x83\x01'
-)
-# 2-bit RLE, generated from /home/pi/Desktop/foood.png, 22 bytes
-food3 = (
-    b'\x02'
-    b'\x07\x07'
-    b'\x04@lB\x04B\x04\x807\x83\x03\x85\x02\x85\x02\x85'
-    b'\x03\x83\x02'
-)
-food4 = (
-    b'\x02'
-    b'\n\n'
-    b'\x03@\xbbD\x05F\x03H\x01E\xc2I\xc1a\x01H'
-    b'\x03F\x02'
-)
+
+class Hack:
+    pass
 # 2-bit RLE, generated from /home/pi/Desktop/Snake.png, 58 bytes
 snake1 = (
     b'\x02'
@@ -40,6 +25,7 @@ food2 = (
     b'\x05@lC\x06B\x07\x807\x84\x05\x86\x03\x88\x02\x88'
     b'\x02\x88\x03\x86\x05\x84\r'
 )
+
 
 
 
@@ -128,9 +114,10 @@ class SnakeApp():
         self.length = 4
         self.pos = 3
         self.score = 0
-        draw.set_font(fonts.fixel20)
+        draw.set_font(fonts.fixel18)
         draw.set_color(0xffff,0x02E2)
-        draw.string("Score: "+ str(self.score), 10, 0)
+        draw.string("Score: ", 10, 1,80)
+        draw.string(str(self.score), 90, 1,20)
         for i in range(len(self.board)):
             self.board[i] = 0
         for i in range(4):
@@ -151,8 +138,7 @@ class SnakeApp():
             draw.blit(snake1, 10*(((head % 24) + self._dir[0]) % 24) , 20+10*(((head//24)+ self._dir[1]) % 22))
             if check_hit(self.board,newHead):
                 self._gameOver = True
-                draw.set_font(fonts.sans28)
-                draw.set_color(0xffff,0x0000)
+                draw.reset()
                 draw.string("Game Over",30,110)
             else:
                 last = move_snake(self.snake,self.pos, newHead, self.length)
@@ -160,8 +146,7 @@ class SnakeApp():
                 if self.food == newHead:
                     if self.length >= 59:
                         self._gameOver = True
-                        draw.set_color(0xffff,0x0000)
-                        draw.set_font(fonts.sans36)
+                        draw.reset()
                         draw.string("You Won! :)",30,110)
                     else:
                         update_board(self.board,newHead,last,True)
@@ -174,8 +159,8 @@ class SnakeApp():
             if (self.length -4)*10 != self.score:
                 self.score = 10*(self.length - 4)
                 draw.set_color(0xffff,0x02E2)
-                draw.set_font(fonts.fixel20)
-                draw.string("Score: "+ str(self.score), 10, 0)
+                draw.set_font(fonts.fixel18)
+                draw.string(str(self.score), 90, 1,20)
 
 
     def _spawnFood(self):
@@ -183,7 +168,7 @@ class SnakeApp():
         localCounter = 0
         while (True or localCounter < 100):
             if check_hit(self.board,trial):
-                print('bing!')
+                #print('bing!')
                 trial = (((trial % 24) + 2) % 24) +  24* (((trial//24)+ 10) % 22)
             else:
                 break
