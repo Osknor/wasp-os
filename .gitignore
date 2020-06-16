@@ -7,3 +7,8 @@ docs/build
 attic/
 wasp/boards/pinetime/watch.py
 node_modules
+wasp/apps/snakey.py
+bootloader
+bootloader
+micropython
+reloader

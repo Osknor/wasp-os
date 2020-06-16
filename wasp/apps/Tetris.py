@@ -3,9 +3,7 @@
 import wasp
 import random
 import micropython
-import array
 import fonts
-import icons
 
 
 
@@ -38,29 +36,30 @@ def get_head(snake,pos: int) ->int:
     return int(b[pos%60])
 @micropython.viper
 def check_hit(board,pos: int) -> bool:
-    b = ptr8(board)
-    return bool(b[(pos//24)*3+((pos%24)//8)] & (1 << ((pos % 24)%8)))
+    b = ptr32(board)
+    return bool(b[(pos%24)] & (1 << (pos // 24)))
+    return False
 @micropython.viper
 def update_board(board,pos:int ,last: int,ignore: bool):
-    b = ptr8(board)
+    b = ptr32(board)
     #print(pos,last,(pos//24),(pos % 24),1 << (pos % 24), b[(pos//24)])
-    b[(pos//24)*3+((pos%24)//8)] |= (1 << ((pos % 24)%8))
+    b[(pos%24)] |= (1 << (pos // 24))
     if not ignore:
-        c = ptr8(board)
-        c[(last//24)*3+((last%24)//8)] &= 0xff -(1 << ((last % 24)%8))
+        c = ptr32(board)
+        c[(last%24)] ^= (1 << (last // 24))
 class Hack:
     pass
 
 class SnakeApp():
-    """Application for classic snake game.
+    """Application for classic Tetris game.
 
     """
-    NAME = 'Snake'
+    NAME = 'Tetris'
 
     def __init__(self):
-        self.board = bytearray(66)
-        self.snake = bytearray(120)
-        self._size = 8
+        """ color 2bit  """
+        self.board = bytearray(240)
+        self.piece = bytearray(3)
         self._restarted = True
         self._gameOver = False
         self._moving = False
@@ -78,70 +77,53 @@ class SnakeApp():
             wasp.system.keep_awake()
             self.update()
     def swipe(self, event):
-        if self._moving:
-            if event[0] == wasp.EventType.UP and self._rl:
-                self._dir = [0,-1]
-                self._rl = False
-            elif event[0] == wasp.EventType.RIGHT and not self._rl:
-                self._dir = [1,0]
-                self._rl = True
-            elif event[0] == wasp.EventType.DOWN and self._rl:
-                self._dir = [0,1]
-                self._rl = False
-            elif event[0] == wasp.EventType.LEFT and not self._rl:
-                self._dir = [-1,0]
-                self._rl = True
+        if event[0] == wasp.EventType.UP and self._rl:
+            self._dir = [0,-1]
+            self._rl = False
+        elif event[0] == wasp.EventType.RIGHT and not self._rl:
+            self._dir = [1,0]
+            self._rl = True
+        elif event[0] == wasp.EventType.DOWN and self._rl:
+            self._dir = [0,1]
+            self._rl = False
+        elif event[0] == wasp.EventType.LEFT and not self._rl:
+            self._dir = [-1,0]
+            self._rl = True
     def touch(self, event):
         if not self._moving:
             self._moving = True
         elif self._gameOver:
             self._draw()
-        elif event[1]>210 and event[2]<30:
-            self._moving = False
-            self._paused = True
     def _draw(self):
         draw = wasp.watch.drawable
         draw.fill()
         draw.fill(0x02e2,0,0,240,20) 
+        #draw.fill(0xffff,0,20+10*10,10*4,10)
+        self._dir = [1,0]
+        self._rl = True
+        self._restarted = False
+        self._moving = False
+        self._gameOver = False
+        self.length = 4
+        self.pos = 3
+        self.score = 0
         draw.set_font(fonts.fixel18)
         draw.set_color(0xffff,0x02E2)
         draw.string("Score: ", 10, 1,80)
-        wasp.watch.drawable.rleblit(icons.pause, (220, 0), fg=0xffff, bg=0x02e2)
-        self._paused = True
-        if (not self._restarted) and (not self._moving):
-            for i in range(self.length):
-                head = get_head(self.snake,self.pos - i)
-                draw.blit(snake1, 10*(((head % 24) + self._dir[0]) % 24) , 20+10*(((head//24)+ self._dir[1]) % 22))
-            draw.blit(food2, 10*(((self.food % 24) ) % 24) , 20+10*(((self.food//24)) % 22))
-            draw.string(str(self.score), 90, 1)
-        else:
-            self.length = 4
-            self.pos = 3
-            self.score = 0
-            draw.set_font(fonts.fixel18)
-            draw.set_color(0xffff,0x02E2)
-            draw.string(str(self.score), 90, 1)
-            for i in range(len(self.board)):
-                self.board[i] = 0
-            for i in range(4):
-                move_snake(self.snake, i,10*24+i, 4)
-                update_board(self.board,10*24+i,0,True)
-                draw.blit(snake1, 10*i, 20+10*10)
-            self._spawnFood()
-            draw.blit(food2, 10*(((self.food % 24) ) % 24) , 20+10*(((self.food//24)) % 22))
-            self._restarted = False
-            self._moving = False
-            self._gameOver = False
-            self._dir = [1,0]
-            self._rl = True
+        draw.string(str(self.score), 90, 1,20)
+        for i in range(len(self.board)):
+            self.board[i] = 0
+        for i in range(4):
+            move_snake(self.snake, i,10*24+i, 4)
+            update_board(self.board,10*24+i,0,True)
+            draw.blit(snake1, 10*i, 20+10*10)
+        self._spawnFood()
+        draw.blit(food2, 10*(((self.food % 24) ) % 24) , 20+10*(((self.food//24)) % 22))
     def update(self):
         draw = wasp.watch.drawable
         if self._restarted:
             self._draw()
         if self._moving:
-            if self._paused:
-                wasp.watch.drawable.rleblit(icons.play, (220, 0), fg=0xffff, bg=0x02e2)
-                self._paused = False
             head = get_head(self.snake,self.pos)
             self.pos += 1 
             newHead = (((head % 24) + self._dir[0]) % 24) +  24* (((head//24)+ self._dir[1]) % 22)
@@ -170,11 +152,7 @@ class SnakeApp():
                 self.score = 10*(self.length - 4)
                 draw.set_color(0xffff,0x02E2)
                 draw.set_font(fonts.fixel18)
-                draw.string(str(self.score), 90, 1)
-        else:
-            if not self._paused:
-                    wasp.watch.drawable.rleblit(icons.pause, (220, 0), fg=0xffff, bg=0x02e2)
-                    self._paused = True
+                draw.string(str(self.score), 90, 1,20)
 
 
     def _spawnFood(self):
